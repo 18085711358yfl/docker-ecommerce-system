@@ -80,10 +80,16 @@ pipeline {
             steps {
                 echo '运行集成测试...'
                 sh '''
-                    docker-compose -f docker-compose.test.yml up -d
+                    # 停止可能存在的旧容器
+                    docker-compose down || true
+                    # 启动服务
+                    docker-compose up -d
+                    # 等待服务启动
                     sleep 30
+                    # 检查后端健康状态
                     curl -f http://localhost:8080/actuator/health || exit 1
-                    docker-compose -f docker-compose.test.yml down
+                    # 清理
+                    docker-compose down
                 '''
             }
         }
@@ -112,7 +118,7 @@ pipeline {
             steps {
                 echo '部署到测试环境...'
                 sh '''
-                    docker-compose down
+                    docker-compose down || true
                     docker-compose up -d
                 '''
             }
@@ -125,10 +131,18 @@ pipeline {
             steps {
                 echo '部署到生产环境...'
                 input message: '确认部署到生产环境？', ok: '部署'
-                sh '''
-                    docker-compose -f docker-compose.yml -f docker-compose.prod.yml down
-                    docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
-                '''
+                script {
+                    // 检查是否存在 docker-compose.prod.yml，如果存在则使用，否则使用默认配置
+                    sh '''
+                        if [ -f docker-compose.prod.yml ]; then
+                            docker-compose -f docker-compose.yml -f docker-compose.prod.yml down || true
+                            docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+                        else
+                            docker-compose down || true
+                            docker-compose up -d
+                        fi
+                    '''
+                }
             }
         }
         
