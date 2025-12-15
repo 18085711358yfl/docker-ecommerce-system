@@ -20,16 +20,8 @@ pipeline {
         stage('后端单元测试') {
             steps {
                 echo '运行后端单元测试...'
-                script {
-                    def workspace = pwd()
-                    sh """
-                        docker run --rm \
-                            -v '${workspace}/backend':/workspace \
-                            -w /workspace \
-                            -v maven-repo:/root/.m2 \
-                            maven:3.9-eclipse-temurin-17 \
-                            sh -c 'ls -la /workspace && pwd && mvn clean test'
-                    """
+                dir('backend') {
+                    sh 'mvn clean test'
                 }
             }
             post {
@@ -42,16 +34,8 @@ pipeline {
         stage('后端代码质量检查') {
             steps {
                 echo '执行代码质量检查...'
-                script {
-                    def workspace = pwd()
-                    sh """
-                        docker run --rm \
-                            -v '${workspace}/backend':/workspace \
-                            -w /workspace \
-                            -v maven-repo:/root/.m2 \
-                            maven:3.9-eclipse-temurin-17 \
-                            mvn checkstyle:check || true
-                    """
+                dir('backend') {
+                    sh 'mvn checkstyle:check || true'
                 }
             }
         }
