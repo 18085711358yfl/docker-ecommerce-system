@@ -20,18 +20,17 @@ pipeline {
         stage('后端单元测试') {
             steps {
                 echo '运行后端单元测试...'
-                dir('backend') {
-                    script {
-                        def workspace = pwd()
-                        sh """
-                            docker run --rm \
-                                -v "${workspace}":/app \
-                                -w /app \
-                                -v maven-repo:/root/.m2 \
-                                maven:3.9-eclipse-temurin-17 \
-                                mvn clean test
-                        """
-                    }
+                script {
+                    def workspace = pwd()
+                    def backendDir = "${workspace}/backend"
+                    sh """
+                        docker run --rm \
+                            -v "${backendDir}":/app \
+                            -w /app \
+                            -v maven-repo:/root/.m2 \
+                            maven:3.9-eclipse-temurin-17 \
+                            mvn clean test
+                    """
                 }
             }
             post {
@@ -44,18 +43,17 @@ pipeline {
         stage('后端代码质量检查') {
             steps {
                 echo '执行代码质量检查...'
-                dir('backend') {
-                    script {
-                        def workspace = pwd()
-                        sh """
-                            docker run --rm \
-                                -v "${workspace}":/app \
-                                -w /app \
-                                -v maven-repo:/root/.m2 \
-                                maven:3.9-eclipse-temurin-17 \
-                                mvn checkstyle:check || true
-                        """
-                    }
+                script {
+                    def workspace = pwd()
+                    def backendDir = "${workspace}/backend"
+                    sh """
+                        docker run --rm \
+                            -v "${backendDir}":/app \
+                            -w /app \
+                            -v maven-repo:/root/.m2 \
+                            maven:3.9-eclipse-temurin-17 \
+                            mvn checkstyle:check || true
+                    """
                 }
             }
         }
