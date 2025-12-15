@@ -54,9 +54,11 @@ pipeline {
                     script {
                         // 先构建本地镜像
                         def localImage = docker.build("ecommerce-backend:${IMAGE_TAG}")
-                        // 然后打标签为推送格式
-                        localImage.tag("${DOCKER_USERNAME}/ecommerce-backend:${IMAGE_TAG}")
-                        localImage.tag("${DOCKER_USERNAME}/ecommerce-backend:latest")
+                        // 使用 docker tag 命令打标签为推送格式
+                        sh """
+                            docker tag ecommerce-backend:${IMAGE_TAG} ${DOCKER_USERNAME}/ecommerce-backend:${IMAGE_TAG}
+                            docker tag ecommerce-backend:${IMAGE_TAG} ${DOCKER_USERNAME}/ecommerce-backend:latest
+                        """
                     }
                 }
             }
@@ -69,9 +71,11 @@ pipeline {
                     script {
                         // 先构建本地镜像
                         def localImage = docker.build("ecommerce-frontend:${IMAGE_TAG}")
-                        // 然后打标签为推送格式
-                        localImage.tag("${DOCKER_USERNAME}/ecommerce-frontend:${IMAGE_TAG}")
-                        localImage.tag("${DOCKER_USERNAME}/ecommerce-frontend:latest")
+                        // 使用 docker tag 命令打标签为推送格式
+                        sh """
+                            docker tag ecommerce-frontend:${IMAGE_TAG} ${DOCKER_USERNAME}/ecommerce-frontend:${IMAGE_TAG}
+                            docker tag ecommerce-frontend:${IMAGE_TAG} ${DOCKER_USERNAME}/ecommerce-frontend:latest
+                        """
                     }
                 }
             }
