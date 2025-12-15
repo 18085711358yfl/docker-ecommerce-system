@@ -111,19 +111,23 @@ pipeline {
                         docker-compose logs backend | tail -50
                         exit 1
                     fi
-                    # 清理
-                    docker-compose down
+                    # 注意：不在这里清理，让健康检查阶段使用
                 '''
             }
         }
         
         stage('推送镜像到仓库') {
             when {
-                branch 'main'
+                anyOf {
+                    branch 'main'
+                    branch 'master'
+                }
             }
             steps {
                 echo '推送镜像到Docker仓库...'
                 script {
+                    echo "当前分支: ${env.BRANCH_NAME}"
+                    echo "Git分支: ${env.GIT_BRANCH}"
                     docker.withRegistry("https://${DOCKER_REGISTRY}", DOCKER_CREDENTIALS_ID) {
                         docker.image(BACKEND_IMAGE).push()
                         docker.image(BACKEND_IMAGE).push('latest')
@@ -173,9 +177,42 @@ pipeline {
             steps {
                 echo '执行健康检查...'
                 sh '''
-                    sleep 30
-                    curl -f http://localhost:80/health || exit 1
-                    curl -f http://localhost:8080/actuator/health || exit 1
+                    # 检查服务是否在运行，如果没有则启动
+                    if ! docker-compose ps 2>/dev/null | grep -q "Up"; then
+                        echo "服务未运行，启动服务..."
+                        docker-compose up -d
+                        echo "等待服务启动..."
+                        sleep 30
+                    else
+                        echo "服务已在运行"
+                    fi
+                    
+                    # 检查容器状态
+                    docker-compose ps
+                    
+                    # 检查前端健康状态
+                    echo "检查前端健康状态..."
+                    if docker exec ecommerce-frontend curl -sf http://localhost:80/health 2>/dev/null; then
+                        echo "前端健康检查通过"
+                    elif docker run --rm --network docker_ecommerce-network curlimages/curl:latest curl -sf http://ecommerce-frontend:80/health 2>/dev/null; then
+                        echo "前端健康检查通过（通过临时容器）"
+                    else
+                        echo "前端健康检查失败，查看日志："
+                        docker-compose logs frontend | tail -20
+                        exit 1
+                    fi
+                    
+                    # 检查后端健康状态
+                    echo "检查后端健康状态..."
+                    if docker exec ecommerce-backend curl -sf http://localhost:8080/actuator/health 2>/dev/null; then
+                        echo "后端健康检查通过"
+                    elif docker run --rm --network docker_ecommerce-network curlimages/curl:latest curl -sf http://ecommerce-backend:8080/actuator/health 2>/dev/null; then
+                        echo "后端健康检查通过（通过临时容器）"
+                    else
+                        echo "后端健康检查失败，查看日志："
+                        docker-compose logs backend | tail -20
+                        exit 1
+                    fi
                 '''
             }
         }
