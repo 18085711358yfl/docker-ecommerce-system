@@ -1,0 +1,161 @@
+pipeline {
+    agent any
+    
+    environment {
+        DOCKER_REGISTRY = 'docker.io'
+        DOCKER_CREDENTIALS_ID = 'docker-hub-credentials'
+        IMAGE_TAG = "${BUILD_NUMBER}"
+        BACKEND_IMAGE = "ecommerce-backend:${IMAGE_TAG}"
+        FRONTEND_IMAGE = "ecommerce-frontend:${IMAGE_TAG}"
+    }
+    
+    stages {
+        stage('代码检出') {
+            steps {
+                echo '正在检出代码...'
+                checkout scm
+            }
+        }
+        
+        stage('后端单元测试') {
+            steps {
+                echo '运行后端单元测试...'
+                dir('backend') {
+                    sh 'mvn clean test'
+                }
+            }
+            post {
+                always {
+                    junit 'backend/target/surefire-reports/*.xml'
+                }
+            }
+        }
+        
+        stage('后端代码质量检查') {
+            steps {
+                echo '执行代码质量检查...'
+                dir('backend') {
+                    sh 'mvn checkstyle:check || true'
+                }
+            }
+        }
+        
+        stage('构建后端镜像') {
+            steps {
+                echo '构建后端Docker镜像...'
+                dir('backend') {
+                    script {
+                        docker.build(BACKEND_IMAGE)
+                    }
+                }
+            }
+        }
+        
+        stage('构建前端镜像') {
+            steps {
+                echo '构建前端Docker镜像...'
+                dir('frontend') {
+                    script {
+                        docker.build(FRONTEND_IMAGE)
+                    }
+                }
+            }
+        }
+        
+        stage('镜像安全扫描') {
+            steps {
+                echo '执行镜像安全扫描...'
+                script {
+                    // 使用Trivy进行镜像扫描
+                    sh """
+                        docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+                        aquasec/trivy:latest image --severity HIGH,CRITICAL \
+                        ${BACKEND_IMAGE} || true
+                    """
+                }
+            }
+        }
+        
+        stage('集成测试') {
+            steps {
+                echo '运行集成测试...'
+                sh '''
+                    docker-compose -f docker-compose.test.yml up -d
+                    sleep 30
+                    curl -f http://localhost:8080/actuator/health || exit 1
+                    docker-compose -f docker-compose.test.yml down
+                '''
+            }
+        }
+        
+        stage('推送镜像到仓库') {
+            when {
+                branch 'main'
+            }
+            steps {
+                echo '推送镜像到Docker仓库...'
+                script {
+                    docker.withRegistry("https://${DOCKER_REGISTRY}", DOCKER_CREDENTIALS_ID) {
+                        docker.image(BACKEND_IMAGE).push()
+                        docker.image(BACKEND_IMAGE).push('latest')
+                        docker.image(FRONTEND_IMAGE).push()
+                        docker.image(FRONTEND_IMAGE).push('latest')
+                    }
+                }
+            }
+        }
+        
+        stage('部署到测试环境') {
+            when {
+                branch 'develop'
+            }
+            steps {
+                echo '部署到测试环境...'
+                sh '''
+                    docker-compose down
+                    docker-compose up -d
+                '''
+            }
+        }
+        
+        stage('部署到生产环境') {
+            when {
+                branch 'main'
+            }
+            steps {
+                echo '部署到生产环境...'
+                input message: '确认部署到生产环境？', ok: '部署'
+                sh '''
+                    docker-compose -f docker-compose.yml -f docker-compose.prod.yml down
+                    docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+                '''
+            }
+        }
+        
+        stage('健康检查') {
+            steps {
+                echo '执行健康检查...'
+                sh '''
+                    sleep 30
+                    curl -f http://localhost:80/health || exit 1
+                    curl -f http://localhost:8080/actuator/health || exit 1
+                '''
+            }
+        }
+    }
+    
+    post {
+        always {
+            echo '清理工作空间...'
+            cleanWs()
+        }
+        success {
+            echo '构建成功！'
+            // 发送成功通知
+        }
+        failure {
+            echo '构建失败！'
+            // 发送失败通知
+        }
+    }
+}

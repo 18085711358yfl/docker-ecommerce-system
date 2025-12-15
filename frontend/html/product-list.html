@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>商品列表 - 电商数据管理系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #F7F3E7;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        header {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid #e0e0e0;
+        }
+        
+        h1 {
+            color: #333;
+            font-size: 24px;
+        }
+        
+        .back-btn {
+            padding: 10px 20px;
+            background: #2196F3;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: background 0.3s;
+        }
+        
+        .back-btn:hover {
+            background: #1976D2;
+        }
+        
+        .toolbar {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .toolbar select,
+        .toolbar input {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        .toolbar button {
+            padding: 10px 20px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .toolbar button:hover {
+            background: #45a049;
+        }
+        
+        table {
+            width: 100%;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            border: 1px solid #e0e0e0;
+        }
+        
+        thead {
+            background: #2196F3;
+            color: white;
+        }
+        
+        th, td {
+            padding: 15px;
+            text-align: left;
+        }
+        
+        tbody tr:hover {
+            background: #f8f9fa;
+        }
+        
+        tbody tr {
+            border-bottom: 1px solid #eee;
+        }
+        
+        .action-btn {
+            padding: 5px 10px;
+            margin: 0 5px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .view-btn {
+            background: #2196F3;
+            color: white;
+        }
+        
+        .edit-btn {
+            background: #FFC107;
+            color: white;
+        }
+        
+        .delete-btn {
+            background: #f44336;
+            color: white;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #999;
+        }
+        
+        .price {
+            color: #f44336;
+            font-weight: bold;
+        }
+        
+        .stock {
+            color: #4CAF50;
+        }
+        
+        .category-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            background: #f5f5f5;
+            color: #666;
+            border-radius: 3px;
+            font-size: 12px;
+            border: 1px solid #ddd;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            overflow-y: auto;
+            padding: 20px 0;
+        }
+        
+        .modal-content {
+            background-color: white;
+            margin: 20px auto;
+            padding: 30px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 600px;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            position: relative;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .modal-header h2 {
+            color: #333;
+        }
+        
+        .close {
+            font-size: 28px;
+            font-weight: bold;
+            color: #999;
+            cursor: pointer;
+        }
+        
+        .close:hover {
+            color: #333;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: 500;
+        }
+        
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+            position: sticky;
+            bottom: -30px;
+            background: white;
+            margin-left: -30px;
+            margin-right: -30px;
+            margin-bottom: -30px;
+            padding: 20px 30px;
+        }
+        
+        .btn-save {
+            padding: 10px 30px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+        
+        .btn-save:hover {
+            background: #45a049;
+        }
+        
+        .btn-save:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .btn-cancel {
+            padding: 10px 30px;
+            background: #999;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+        
+        .btn-cancel:hover {
+            background: #777;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>商品列表管理</h1>
+            <a href="index.html" class="back-btn">返回首页</a>
+        </header>
+        
+        <div class="toolbar">
+            <select id="categoryFilter" onchange="filterByCategory()">
+                <option value="">全部分类</option>
+            </select>
+            <input type="text" id="searchInput" placeholder="搜索商品名称...">
+            <button onclick="searchProducts()">搜索</button>
+            <button onclick="loadProducts()">刷新</button>
+            <button onclick="openAddModal()" style="background: #4CAF50;">新增商品</button>
+        </div>
+        
+        <div id="loading" class="loading">正在加载数据...</div>
+        
+        <table id="productTable" style="display: none;">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>图片</th>
+                    <th>商品名称</th>
+                    <th>描述</th>
+                    <th>价格</th>
+                    <th>库存</th>
+                    <th>分类</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- 编辑/新增模态框 -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">编辑商品</h2>
+                <span class="close" onclick="closeEditModal()">&times;</span>
+            </div>
+            <form id="editForm">
+                <input type="hidden" id="editId">
+                <div class="form-group">
+                    <label>商品图片（可选）</label>
+                    <input type="file" id="imageFile" accept="image/*" onchange="previewImage(this)">
+                    <input type="hidden" id="editImageUrl">
+                    <div id="imagePreview" style="margin-top: 10px;"></div>
+                    <small style="color: #666; display: block; margin-top: 5px;">选择图片后，点击保存按钮将自动上传</small>
+                </div>
+                <div class="form-group">
+                    <label>商品名称</label>
+                    <input type="text" id="editName" required>
+                </div>
+                <div class="form-group">
+                    <label>商品描述</label>
+                    <textarea id="editDescription"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>价格</label>
+                    <input type="number" id="editPrice" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label>库存</label>
+                    <input type="number" id="editStock" required>
+                </div>
+                <div class="form-group">
+                    <label>分类</label>
+                    <input type="text" id="editCategory">
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn-cancel" onclick="closeEditModal()">取消</button>
+                    <button type="submit" class="btn-save">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        const API_BASE_URL = '/api';
+        let allProducts = [];
+        
+        window.onload = function() {
+            loadProducts();
+        };
+        
+        async function loadProducts() {
+            const loading = document.getElementById('loading');
+            const table = document.getElementById('productTable');
+            
+            loading.style.display = 'block';
+            table.style.display = 'none';
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/products`);
+                const result = await response.json();
+                
+                if (result.success && result.data) {
+                    allProducts = result.data;
+                    displayProducts(allProducts);
+                    populateCategories(allProducts);
+                }
+            } catch (err) {
+                alert('加载失败: ' + err.message);
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+        
+        function displayProducts(products) {
+            const tbody = document.getElementById('tableBody');
+            const table = document.getElementById('productTable');
+            
+            tbody.innerHTML = '';
+            
+            if (products.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">暂无数据</td></tr>';
+            } else {
+                products.forEach(product => {
+                    const row = document.createElement('tr');
+                    const imageHtml = product.imageUrl 
+                        ? `<img src="${product.imageUrl}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 5px;">`
+                        : '<div style="width: 50px; height: 50px; background: #f5f5f5; border-radius: 5px; display: flex; align-items: center; justify-content: center; color: #ccc;">无图</div>';
+                    
+                    row.innerHTML = `
+                        <td>${product.id}</td>
+                        <td>${imageHtml}</td>
+                        <td><strong>${product.name}</strong></td>
+                        <td>${(product.description || '').substring(0, 50)}...</td>
+                        <td class="price">¥${product.price}</td>
+                        <td class="stock">${product.stock}</td>
+                        <td>${product.category ? `<span class="category-badge">${product.category}</span>` : '-'}</td>
+                        <td>
+                            <button class="action-btn view-btn" onclick="viewProduct(${product.id})">查看</button>
+                            <button class="action-btn edit-btn" onclick="editProduct(${product.id})">编辑</button>
+                            <button class="action-btn delete-btn" onclick="deleteProduct(${product.id})">删除</button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }
+            
+            table.style.display = 'table';
+        }
+        
+        function populateCategories(products) {
+            const select = document.getElementById('categoryFilter');
+            const categories = [...new Set(products.map(p => p.category).filter(c => c))];
+            
+            categories.forEach(category => {
+                const option = document.createElement('option');
+                option.value = category;
+                option.textContent = category;
+                select.appendChild(option);
+            });
+        }
+        
+        function filterByCategory() {
+            const category = document.getElementById('categoryFilter').value;
+            
+            if (!category) {
+                displayProducts(allProducts);
+            } else {
+                const filtered = allProducts.filter(p => p.category === category);
+                displayProducts(filtered);
+            }
+        }
+        
+        async function searchProducts() {
+            const keyword = document.getElementById('searchInput').value.trim();
+            
+            if (!keyword) {
+                displayProducts(allProducts);
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/products/search?keyword=${encodeURIComponent(keyword)}`);
+                const result = await response.json();
+                
+                if (result.success && result.data) {
+                    displayProducts(result.data);
+                }
+            } catch (err) {
+                alert('搜索失败: ' + err.message);
+            }
+        }
+        
+        function viewProduct(id) {
+            window.location.href = `product-detail.html?id=${id}`;
+        }
+        
+        function openAddModal() {
+            document.getElementById('modalTitle').textContent = '新增商品';
+            document.getElementById('editForm').reset();
+            document.getElementById('editId').value = '';
+            document.getElementById('editImageUrl').value = '';
+            document.getElementById('imagePreview').innerHTML = '';
+            document.getElementById('imageFile').value = ''; // 清空文件选择
+            document.getElementById('editModal').style.display = 'block';
+        }
+        
+        async function editProduct(id) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/products/${id}`);
+                const result = await response.json();
+                
+                if (result.success && result.data) {
+                    const product = result.data;
+                    document.getElementById('modalTitle').textContent = '编辑商品';
+                    document.getElementById('editId').value = product.id;
+                    document.getElementById('editName').value = product.name;
+                    document.getElementById('editDescription').value = product.description || '';
+                    document.getElementById('editPrice').value = product.price;
+                    document.getElementById('editStock').value = product.stock;
+                    document.getElementById('editCategory').value = product.category || '';
+                    document.getElementById('editImageUrl').value = product.imageUrl || '';
+                    
+                    // 清空文件选择
+                    document.getElementById('imageFile').value = '';
+                    
+                    // 显示当前图片
+                    if (product.imageUrl) {
+                        document.getElementById('imagePreview').innerHTML = 
+                            `<img src="${product.imageUrl}" style="max-width: 200px; max-height: 200px; border-radius: 5px;" onerror="this.style.display='none'; this.parentElement.innerHTML+='<p style=color:red>图片加载失败</p>'">`;
+                    } else {
+                        document.getElementById('imagePreview').innerHTML = '';
+                    }
+                    
+                    document.getElementById('editModal').style.display = 'block';
+                }
+            } catch (err) {
+                alert('获取商品信息失败: ' + err.message);
+            }
+        }
+        
+        // 预览选择的图片
+        function previewImage(input) {
+            const file = input.files[0];
+            const previewDiv = document.getElementById('imagePreview');
+            
+            if (file) {
+                // 验证文件类型
+                if (!file.type.startsWith('image/')) {
+                    alert('请选择图片文件');
+                    input.value = '';
+                    previewDiv.innerHTML = '';
+                    return;
+                }
+                
+                // 验证文件大小（5MB）
+                if (file.size > 5 * 1024 * 1024) {
+                    alert('图片大小不能超过5MB');
+                    input.value = '';
+                    previewDiv.innerHTML = '';
+                    return;
+                }
+                
+                // 显示本地预览
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    previewDiv.innerHTML = `
+                        <div style="padding: 10px; background: #fff3e0; border-radius: 5px; margin-top: 10px;">
+                            <p style="color: #e65100; margin-bottom: 10px;">📷 已选择图片（点击保存后将自动上传）</p>
+                            <img src="${e.target.result}" 
+                                 style="max-width: 200px; max-height: 200px; border-radius: 5px; border: 1px solid #ddd;">
+                        </div>
+                    `;
+                };
+                reader.readAsDataURL(file);
+            } else {
+                previewDiv.innerHTML = '';
+            }
+        }
+        
+        // 上传图片到服务器
+        async function uploadImageToServer() {
+            const fileInput = document.getElementById('imageFile');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                return null; // 没有选择文件，返回null
+            }
+            
+            console.log('开始上传图片:', file.name, file.size, file.type);
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/upload/image`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                console.log('上传响应状态:', response.status);
+                const result = await response.json();
+                console.log('上传响应数据:', result);
+                
+                if (result.success) {
+                    console.log('图片上传成功:', result.url);
+                    return result.url;
+                } else {
+                    throw new Error(result.message || '上传失败');
+                }
+            } catch (err) {
+                console.error('上传异常:', err);
+                throw err;
+            }
+        }
+        
+        function closeEditModal() {
+            document.getElementById('editModal').style.display = 'none';
+        }
+        
+        document.getElementById('editForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const submitButton = this.querySelector('button[type="submit"]');
+            const originalText = submitButton.textContent;
+            
+            try {
+                // 禁用提交按钮，防止重复提交
+                submitButton.disabled = true;
+                submitButton.textContent = '处理中...';
+                
+                const id = document.getElementById('editId').value;
+                const fileInput = document.getElementById('imageFile');
+                let imageUrl = document.getElementById('editImageUrl').value;
+                
+                console.log('=== 表单提交调试信息 ===');
+                console.log('商品ID:', id || '新建商品');
+                console.log('是否选择了新图片:', fileInput.files.length > 0);
+                console.log('当前图片URL:', imageUrl);
+                
+                // 如果选择了新图片，先上传
+                if (fileInput.files.length > 0) {
+                    submitButton.textContent = '正在上传图片...';
+                    try {
+                        const uploadedUrl = await uploadImageToServer();
+                        if (uploadedUrl) {
+                            imageUrl = uploadedUrl;
+                            console.log('图片上传成功，新URL:', imageUrl);
+                            // 清空文件选择
+                            fileInput.value = '';
+                        }
+                    } catch (uploadErr) {
+                        alert('图片上传失败: ' + uploadErr.message + '\n\n是否继续保存商品信息（不含图片）？');
+                        const continueWithoutImage = confirm('点击"确定"继续保存，点击"取消"返回修改');
+                        if (!continueWithoutImage) {
+                            return;
+                        }
+                    }
+                }
+                
+                submitButton.textContent = '正在保存...';
+                
+                const productData = {
+                    name: document.getElementById('editName').value,
+                    description: document.getElementById('editDescription').value,
+                    price: parseFloat(document.getElementById('editPrice').value),
+                    stock: parseInt(document.getElementById('editStock').value),
+                    category: document.getElementById('editCategory').value,
+                    imageUrl: imageUrl || null
+                };
+                
+                console.log('提交的商品数据:', productData);
+                
+                let response;
+                if (id) {
+                    // 更新商品
+                    response = await fetch(`${API_BASE_URL}/products/${id}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(productData)
+                    });
+                } else {
+                    // 新增商品
+                    response = await fetch(`${API_BASE_URL}/products`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(productData)
+                    });
+                }
+                
+                const result = await response.json();
+                console.log('服务器响应:', result);
+                
+                if (result.success) {
+                    alert(id ? '商品更新成功！' : '商品新增成功！');
+                    closeEditModal();
+                    loadProducts();
+                } else {
+                    alert((id ? '更新' : '新增') + '失败: ' + result.message);
+                }
+            } catch (err) {
+                console.error('保存失败:', err);
+                alert('保存失败: ' + err.message);
+            } finally {
+                // 恢复提交按钮
+                submitButton.disabled = false;
+                submitButton.textContent = originalText;
+            }
+        });
+        
+        async function deleteProduct(id) {
+            if (!confirm('确定要删除这个商品吗？')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/products/${id}`, {
+                    method: 'DELETE'
+                });
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('删除成功！');
+                    loadProducts();
+                } else {
+                    alert('删除失败: ' + result.message);
+                }
+            } catch (err) {
+                alert('删除失败: ' + err.message);
+            }
+        }
+        
+        window.onclick = function(event) {
+            const modal = document.getElementById('editModal');
+            if (event.target == modal) {
+                closeEditModal();
+            }
+        }
+    </script>
+</body>
+</html>

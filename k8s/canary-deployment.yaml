@@ -1,0 +1,91 @@
+# 金丝雀部署配置
+---
+# 稳定版本（90%流量）
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-stable
+  namespace: ecommerce
+spec:
+  replicas: 9
+  selector:
+    matchLabels:
+      app: backend
+      track: stable
+  template:
+    metadata:
+      labels:
+        app: backend
+        track: stable
+        version: v1
+    spec:
+      containers:
+      - name: backend
+        image: ecommerce-backend:v1.0
+        ports:
+        - containerPort: 8080
+        env:
+        - name: SPRING_DATASOURCE_URL
+          value: jdbc:mysql://mysql:3306/ecommerce?useSSL=false&serverTimezone=Asia/Shanghai
+        - name: SPRING_DATASOURCE_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: username
+        - name: SPRING_DATASOURCE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: password
+---
+# 金丝雀版本（10%流量）
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-canary
+  namespace: ecommerce
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+      track: canary
+  template:
+    metadata:
+      labels:
+        app: backend
+        track: canary
+        version: v2
+    spec:
+      containers:
+      - name: backend
+        image: ecommerce-backend:v2.0
+        ports:
+        - containerPort: 8080
+        env:
+        - name: SPRING_DATASOURCE_URL
+          value: jdbc:mysql://mysql:3306/ecommerce?useSSL=false&serverTimezone=Asia/Shanghai
+        - name: SPRING_DATASOURCE_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: username
+        - name: SPRING_DATASOURCE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: password
+---
+# Service - 同时选择stable和canary版本
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: ecommerce
+spec:
+  selector:
+    app: backend
+  ports:
+  - port: 8080
+    targetPort: 8080
+  type: ClusterIP

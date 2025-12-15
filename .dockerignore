@@ -1,0 +1,55 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+README.md
+docs/
+*.md
+
+# IDE
+.idea
+.vscode
+*.iml
+*.swp
+*.swo
+
+# Build
+target/
+build/
+dist/
+*.class
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Test
+test/
+tests/
+*.test.js
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+Jenkinsfile
+
+# Docker
+docker-compose*.yml
+Dockerfile
+.dockerignore
+
+# Backup
+*.bak
+*.backup
+*.sql
