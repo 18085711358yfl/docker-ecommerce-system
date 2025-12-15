@@ -164,22 +164,27 @@ pipeline {
                     echo "Docker Hub用户名: ${DOCKER_USERNAME}"
                     echo "镜像标签: ${IMAGE_TAG}"
                     
-                    // 先测试登录
-                    sh """
-                        echo "测试 Docker Hub 登录..."
-                        docker login --username ${DOCKER_USERNAME} --password-stdin < /dev/null || echo "登录测试跳过（将在推送时自动登录）"
-                    """
-                    
-                    docker.withRegistry("https://${DOCKER_REGISTRY}", DOCKER_CREDENTIALS_ID) {
-                        echo "推送后端镜像: ${DOCKER_USERNAME}/ecommerce-backend:${IMAGE_TAG}"
-                        def backendImage = docker.image("${DOCKER_USERNAME}/ecommerce-backend:${IMAGE_TAG}")
-                        backendImage.push()
-                        backendImage.push('latest')
-                        
-                        echo "推送前端镜像: ${DOCKER_USERNAME}/ecommerce-frontend:${IMAGE_TAG}"
-                        def frontendImage = docker.image("${DOCKER_USERNAME}/ecommerce-frontend:${IMAGE_TAG}")
-                        frontendImage.push()
-                        frontendImage.push('latest')
+                    // 使用 Jenkins Credentials 正确登录 Docker Hub
+                    withCredentials([usernamePassword(
+                        credentialsId: DOCKER_CREDENTIALS_ID,
+                        usernameVariable: 'DOCKER_USER',
+                        passwordVariable: 'DOCKER_PASS'
+                    )]) {
+                        sh """
+                            echo "正在登录 Docker Hub..."
+                            echo "\$DOCKER_PASS" | docker login -u "\$DOCKER_USER" --password-stdin
+                            echo "Docker Hub 登录成功！"
+                            
+                            echo "推送后端镜像: ${DOCKER_USERNAME}/ecommerce-backend:${IMAGE_TAG}"
+                            docker push ${DOCKER_USERNAME}/ecommerce-backend:${IMAGE_TAG}
+                            docker push ${DOCKER_USERNAME}/ecommerce-backend:latest
+                            
+                            echo "推送前端镜像: ${DOCKER_USERNAME}/ecommerce-frontend:${IMAGE_TAG}"
+                            docker push ${DOCKER_USERNAME}/ecommerce-frontend:${IMAGE_TAG}
+                            docker push ${DOCKER_USERNAME}/ecommerce-frontend:latest
+                            
+                            echo "所有镜像推送完成！"
+                        """
                     }
                 }
             }
