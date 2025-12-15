@@ -1,10 +1,6 @@
 pipeline {
     agent any
     
-    tools {
-        maven 'Maven'  // 使用在Global Tool Configuration中配置的Maven工具名称
-    }
-    
     environment {
         DOCKER_REGISTRY = 'docker.io'
         DOCKER_CREDENTIALS_ID = 'docker-hub-credentials'
@@ -25,7 +21,14 @@ pipeline {
             steps {
                 echo '运行后端单元测试...'
                 dir('backend') {
-                    sh 'mvn clean test'
+                    sh '''
+                        docker run --rm \
+                            -v "$PWD":/app \
+                            -w /app \
+                            -v maven-repo:/root/.m2 \
+                            maven:3.9-eclipse-temurin-17 \
+                            mvn clean test
+                    '''
                 }
             }
             post {
@@ -39,7 +42,14 @@ pipeline {
             steps {
                 echo '执行代码质量检查...'
                 dir('backend') {
-                    sh 'mvn checkstyle:check || true'
+                    sh '''
+                        docker run --rm \
+                            -v "$PWD":/app \
+                            -w /app \
+                            -v maven-repo:/root/.m2 \
+                            maven:3.9-eclipse-temurin-17 \
+                            mvn checkstyle:check || true
+                    '''
                 }
             }
         }
