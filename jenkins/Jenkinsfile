@@ -23,6 +23,13 @@ pipeline {
                 script {
                     def workspace = pwd()
                     def backendDir = "${workspace}/backend"
+                    // 调试：检查文件是否存在
+                    sh """
+                        echo "Workspace: ${workspace}"
+                        echo "Backend dir: ${backendDir}"
+                        ls -la ${backendDir} || echo "Backend dir not found"
+                        test -f ${backendDir}/pom.xml && echo "pom.xml exists" || echo "pom.xml NOT found"
+                    """
                     sh """
                         docker run --rm \
                             -v "${backendDir}":/app \
