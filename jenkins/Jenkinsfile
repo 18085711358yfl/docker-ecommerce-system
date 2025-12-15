@@ -85,9 +85,21 @@ pipeline {
                     # 启动服务
                     docker-compose up -d
                     # 等待服务启动
+                    echo "等待服务启动..."
                     sleep 30
-                    # 检查后端健康状态
-                    curl -f http://localhost:8080/actuator/health || exit 1
+                    # 检查容器状态
+                    docker-compose ps
+                    # 检查后端健康状态 - 使用 docker exec 在容器内检查
+                    echo "检查后端健康状态..."
+                    if docker exec ecommerce-backend curl -sf http://localhost:8080/actuator/health; then
+                        echo "后端健康检查通过"
+                    elif docker run --rm --network docker_ecommerce-network curlimages/curl:latest curl -sf http://ecommerce-backend:8080/actuator/health; then
+                        echo "后端健康检查通过（通过临时容器）"
+                    else
+                        echo "后端健康检查失败，查看日志："
+                        docker-compose logs backend | tail -50
+                        exit 1
+                    fi
                     # 清理
                     docker-compose down
                 '''
