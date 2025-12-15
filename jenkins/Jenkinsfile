@@ -3,10 +3,11 @@ pipeline {
     
     environment {
         DOCKER_REGISTRY = 'docker.io'
+        DOCKER_USERNAME = 'flyang03'
         DOCKER_CREDENTIALS_ID = 'docker-hub-credentials'
         IMAGE_TAG = "${BUILD_NUMBER}"
-        BACKEND_IMAGE = "ecommerce-backend:${IMAGE_TAG}"
-        FRONTEND_IMAGE = "ecommerce-frontend:${IMAGE_TAG}"
+        BACKEND_IMAGE = "${DOCKER_USERNAME}/ecommerce-backend:${IMAGE_TAG}"
+        FRONTEND_IMAGE = "${DOCKER_USERNAME}/ecommerce-frontend:${IMAGE_TAG}"
     }
     
     stages {
@@ -51,7 +52,11 @@ pipeline {
                 echo '构建后端Docker镜像...'
                 dir('backend') {
                     script {
-                        docker.build(BACKEND_IMAGE)
+                        // 先构建本地镜像
+                        def localImage = docker.build("ecommerce-backend:${IMAGE_TAG}")
+                        // 然后打标签为推送格式
+                        localImage.tag("${DOCKER_USERNAME}/ecommerce-backend:${IMAGE_TAG}")
+                        localImage.tag("${DOCKER_USERNAME}/ecommerce-backend:latest")
                     }
                 }
             }
@@ -62,7 +67,11 @@ pipeline {
                 echo '构建前端Docker镜像...'
                 dir('frontend') {
                     script {
-                        docker.build(FRONTEND_IMAGE)
+                        // 先构建本地镜像
+                        def localImage = docker.build("ecommerce-frontend:${IMAGE_TAG}")
+                        // 然后打标签为推送格式
+                        localImage.tag("${DOCKER_USERNAME}/ecommerce-frontend:${IMAGE_TAG}")
+                        localImage.tag("${DOCKER_USERNAME}/ecommerce-frontend:latest")
                     }
                 }
             }
@@ -74,11 +83,15 @@ pipeline {
                 script {
                     // 使用Trivy进行镜像扫描，启用缓存和优化设置
                     sh """
-                        # 创建Trivy缓存目录
-                        mkdir -p /tmp/trivy-cache || true
+                        # 清理 Docker 未使用的资源以释放空间
+                        docker system prune -f || true
+                        
+                        # 使用 Jenkins 工作空间存储缓存（持久化）
+                        TRIVY_CACHE_DIR=\${WORKSPACE}/.trivy-cache
+                        mkdir -p \${TRIVY_CACHE_DIR} || true
                         
                         # 检查是否存在数据库缓存
-                        if [ -f /tmp/trivy-cache/db/trivy.db ]; then
+                        if [ -f \${TRIVY_CACHE_DIR}/db/trivy.db ]; then
                             echo "使用已有的数据库缓存"
                             SKIP_DB_UPDATE="--skip-db-update"
                         else
@@ -89,14 +102,14 @@ pipeline {
                         # 使用Trivy扫描，启用缓存和优化选项
                         docker run --rm \
                             -v /var/run/docker.sock:/var/run/docker.sock \
-                            -v /tmp/trivy-cache:/root/.cache/trivy \
+                            -v \${TRIVY_CACHE_DIR}:/root/.cache/trivy \
                             aquasec/trivy:latest image \
                             --cache-dir /root/.cache/trivy \
                             --severity CRITICAL \
                             --timeout 10m \
                             --no-progress \
                             \${SKIP_DB_UPDATE} \
-                            ${BACKEND_IMAGE} || true
+                            ecommerce-backend:${IMAGE_TAG} || true
                     """
                 }
             }
@@ -145,10 +158,12 @@ pipeline {
                     echo "当前分支: ${env.BRANCH_NAME ?: 'N/A'}"
                     echo "Git分支: ${env.GIT_BRANCH ?: 'N/A'}"
                     docker.withRegistry("https://${DOCKER_REGISTRY}", DOCKER_CREDENTIALS_ID) {
-                        docker.image(BACKEND_IMAGE).push()
-                        docker.image(BACKEND_IMAGE).push('latest')
-                        docker.image(FRONTEND_IMAGE).push()
-                        docker.image(FRONTEND_IMAGE).push('latest')
+                        def backendImage = docker.image("${DOCKER_USERNAME}/ecommerce-backend:${IMAGE_TAG}")
+                        def frontendImage = docker.image("${DOCKER_USERNAME}/ecommerce-frontend:${IMAGE_TAG}")
+                        backendImage.push()
+                        backendImage.push('latest')
+                        frontendImage.push()
+                        frontendImage.push('latest')
                     }
                 }
             }
