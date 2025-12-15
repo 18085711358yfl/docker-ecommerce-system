@@ -161,11 +161,23 @@ pipeline {
                 script {
                     echo "当前分支: ${env.BRANCH_NAME ?: 'N/A'}"
                     echo "Git分支: ${env.GIT_BRANCH ?: 'N/A'}"
+                    echo "Docker Hub用户名: ${DOCKER_USERNAME}"
+                    echo "镜像标签: ${IMAGE_TAG}"
+                    
+                    // 先测试登录
+                    sh """
+                        echo "测试 Docker Hub 登录..."
+                        docker login --username ${DOCKER_USERNAME} --password-stdin < /dev/null || echo "登录测试跳过（将在推送时自动登录）"
+                    """
+                    
                     docker.withRegistry("https://${DOCKER_REGISTRY}", DOCKER_CREDENTIALS_ID) {
+                        echo "推送后端镜像: ${DOCKER_USERNAME}/ecommerce-backend:${IMAGE_TAG}"
                         def backendImage = docker.image("${DOCKER_USERNAME}/ecommerce-backend:${IMAGE_TAG}")
-                        def frontendImage = docker.image("${DOCKER_USERNAME}/ecommerce-frontend:${IMAGE_TAG}")
                         backendImage.push()
                         backendImage.push('latest')
+                        
+                        echo "推送前端镜像: ${DOCKER_USERNAME}/ecommerce-frontend:${IMAGE_TAG}"
+                        def frontendImage = docker.image("${DOCKER_USERNAME}/ecommerce-frontend:${IMAGE_TAG}")
                         frontendImage.push()
                         frontendImage.push('latest')
                     }
