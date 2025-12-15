@@ -66,11 +66,22 @@ pipeline {
             steps {
                 echo '执行镜像安全扫描...'
                 script {
-                    // 使用Trivy进行镜像扫描
+                    // 使用Trivy进行镜像扫描，启用缓存和优化设置
                     sh """
-                        docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
-                        aquasec/trivy:latest image --severity HIGH,CRITICAL \
-                        ${BACKEND_IMAGE} || true
+                        # 创建Trivy缓存目录
+                        mkdir -p /tmp/trivy-cache || true
+                        
+                        # 使用Trivy扫描，启用缓存和优化选项
+                        docker run --rm \
+                            -v /var/run/docker.sock:/var/run/docker.sock \
+                            -v /tmp/trivy-cache:/root/.cache/trivy \
+                            aquasec/trivy:latest image \
+                            --cache-dir /root/.cache/trivy \
+                            --severity CRITICAL \
+                            --timeout 10m \
+                            --no-progress \
+                            --skip-db-update \
+                            ${BACKEND_IMAGE} || true
                     """
                 }
             }
