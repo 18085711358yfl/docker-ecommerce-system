@@ -37,6 +37,8 @@ public class ProductController {
         response.put("success", true);
         response.put("data", products);
         response.put("total", products.size());
+        response.put("version", "v2");  // 版本标识
+        response.put("message", "Backend API v2 - Blue-Green Deployment");
         return ResponseEntity.ok(response);
     }
     

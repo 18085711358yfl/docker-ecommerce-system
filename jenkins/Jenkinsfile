@@ -1,6 +1,14 @@
 pipeline {
     agent any
     
+    // 配置代码提交触发机制
+    triggers {
+        // GitHub/GitLab Webhook 触发器
+        githubPush()
+        // 或者使用通用的 SCM 轮询（备用方案）
+        pollSCM('H/5 * * * *')  // 每5分钟检查一次代码变更
+    }
+    
     environment {
         DOCKER_REGISTRY = 'docker.io'
         DOCKER_USERNAME = 'flyang03'
@@ -28,12 +36,27 @@ pipeline {
             post {
                 always {
                     script {
-                        def testReportPath = 'backend/target/surefire-reports/*.xml'
-                        echo "测试报告路径: ${testReportPath}"
-                        // 检查报告文件是否存在
-                        sh "ls -la backend/target/surefire-reports/ || echo '报告目录不存在'"
-                        junit testReportPath
+                        echo '收集测试报告...'
+                        // JUnit 测试报告
+                        junit allowEmptyResults: true, testResults: 'backend/target/surefire-reports/*.xml'
+                        
+                        // 发布 HTML 测试报告
+                        publishHTML([
+                            allowMissing: true,
+                            alwaysLinkToLastBuild: true,
+                            keepAll: true,
+                            reportDir: 'backend/target/surefire-reports',
+                            reportFiles: '*.html',
+                            reportName: '单元测试报告',
+                            reportTitles: '单元测试结果'
+                        ])
                     }
+                }
+                success {
+                    echo '✅ 单元测试通过'
+                }
+                failure {
+                    echo '❌ 单元测试失败'
                 }
             }
         }
@@ -273,15 +296,70 @@ pipeline {
     post {
         always {
             echo '清理工作空间...'
+            
+            // 生成综合测试报告
+            script {
+                echo '📊 生成综合测试报告...'
+                
+                // 收集所有测试结果
+                junit allowEmptyResults: true, testResults: '**/target/surefire-reports/*.xml, **/target/failsafe-reports/*.xml'
+                
+                // 发布测试覆盖率报告（如果有）
+                publishHTML([
+                    allowMissing: true,
+                    alwaysLinkToLastBuild: true,
+                    keepAll: true,
+                    reportDir: 'backend/target/site/jacoco',
+                    reportFiles: 'index.html',
+                    reportName: '代码覆盖率报告',
+                    reportTitles: 'JaCoCo Coverage Report'
+                ])
+                
+                // 发布构建趋势报告
+                echo '构建编号: ${BUILD_NUMBER}'
+                echo '构建状态: ${currentBuild.result}'
+                echo '构建时长: ${currentBuild.durationString}'
+            }
+            
             cleanWs()
         }
         success {
-            echo '构建成功！'
-            // 发送成功通知
+            echo '✅ 构建成功！'
+            emailext(
+                subject: "✅ Jenkins构建成功 - ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                body: """
+                    <h2>构建成功</h2>
+                    <p><strong>项目:</strong> ${env.JOB_NAME}</p>
+                    <p><strong>构建编号:</strong> ${env.BUILD_NUMBER}</p>
+                    <p><strong>构建时间:</strong> ${new Date()}</p>
+                    <p><strong>Git分支:</strong> ${env.GIT_BRANCH}</p>
+                    <p><strong>Git提交:</strong> ${env.GIT_COMMIT}</p>
+                    <p><a href="${env.BUILD_URL}">查看构建详情</a></p>
+                    <p><a href="${env.BUILD_URL}testReport/">查看测试报告</a></p>
+                """,
+                to: '${DEFAULT_RECIPIENTS}',
+                mimeType: 'text/html'
+            )
         }
         failure {
-            echo '构建失败！'
-            // 发送失败通知
+            echo '❌ 构建失败！'
+            emailext(
+                subject: "❌ Jenkins构建失败 - ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                body: """
+                    <h2>构建失败</h2>
+                    <p><strong>项目:</strong> ${env.JOB_NAME}</p>
+                    <p><strong>构建编号:</strong> ${env.BUILD_NUMBER}</p>
+                    <p><strong>构建时间:</strong> ${new Date()}</p>
+                    <p><strong>Git分支:</strong> ${env.GIT_BRANCH}</p>
+                    <p><strong>Git提交:</strong> ${env.GIT_COMMIT}</p>
+                    <p><strong>失败原因:</strong> ${currentBuild.result}</p>
+                    <p><a href="${env.BUILD_URL}">查看构建详情</a></p>
+                    <p><a href="${env.BUILD_URL}console">查看控制台输出</a></p>
+                    <p><a href="${env.BUILD_URL}testReport/">查看测试报告</a></p>
+                """,
+                to: '${DEFAULT_RECIPIENTS}',
+                mimeType: 'text/html'
+            )
         }
     }
 }

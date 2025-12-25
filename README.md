@@ -1048,18 +1048,73 @@ docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword
 
 #### 关键特性
 
-✅ **自动化测试** - 每次构建自动运行6个单元测试  
-✅ **测试报告** - 自动生成JUnit XML测试报告  
+✅ **代码提交触发** - GitHub/GitLab Webhook 自动触发构建  
+✅ **自动化测试** - 每次构建自动运行单元测试  
+✅ **测试报告展示** - JUnit + HTML + JaCoCo 覆盖率报告  
 ✅ **代码质量** - Checkstyle代码规范检查  
 ✅ **安全扫描** - Trivy镜像漏洞扫描  
 ✅ **集成测试** - 自动验证服务健康状态  
 ✅ **分支策略** - develop→测试环境，main→生产环境  
 ✅ **人工审批** - 生产部署需要手动确认  
-✅ **失败通知** - 构建失败自动通知
+✅ **邮件通知** - 构建成功/失败自动发送邮件
 
 #### 流水线配置文件
 
 查看 `jenkins/Jenkinsfile` 了解完整配置
+
+### 代码提交自动触发
+
+项目配置了两种触发方式：
+
+#### 方式一：GitHub/GitLab Webhook（推荐）
+```bash
+# 1. 在 GitHub/GitLab 中配置 Webhook
+# URL: http://your-jenkins-url/github-webhook/
+# Content type: application/json
+# Events: Push events
+
+# 2. 提交代码自动触发
+git add .
+git commit -m "feat: add new feature"
+git push origin main
+# Jenkins 会自动触发构建
+```
+
+#### 方式二：SCM 轮询（备用）
+```groovy
+// Jenkinsfile 中配置
+triggers {
+    pollSCM('H/5 * * * *')  // 每5分钟检查一次代码变更
+}
+```
+
+### 查看测试报告
+
+构建完成后，可以在 Jenkins 中查看多种测试报告：
+
+#### 1. JUnit 测试结果
+```bash
+# Jenkins 构建页面 → "Test Result"
+# 显示：测试用例总数、通过数、失败数、测试趋势图
+```
+
+#### 2. HTML 测试报告
+```bash
+# Jenkins 构建页面 → "单元测试报告"
+# 显示：详细的测试执行结果、错误堆栈信息
+```
+
+#### 3. 代码覆盖率报告
+```bash
+# Jenkins 构建页面 → "代码覆盖率报告"
+# 显示：行覆盖率、分支覆盖率、方法覆盖率
+```
+
+#### 4. 邮件通知
+```bash
+# 构建成功/失败后自动发送邮件
+# 邮件包含：构建状态、测试报告链接、构建详情
+```
 
 ### 手动触发流水线
 

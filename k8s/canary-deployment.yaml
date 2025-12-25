@@ -21,7 +21,8 @@ spec:
     spec:
       containers:
       - name: backend
-        image: ecommerce-backend:v1.0
+        image: ecommerce-backend:v1
+        imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8080
         env:
@@ -59,7 +60,8 @@ spec:
     spec:
       containers:
       - name: backend
-        image: ecommerce-backend:v2.0
+        image: ecommerce-backend:v2
+        imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8080
         env:
