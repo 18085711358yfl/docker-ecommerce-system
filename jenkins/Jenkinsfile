@@ -195,8 +195,20 @@ pipeline {
                     )]) {
                         sh """
                             echo "正在登录 Docker Hub..."
-                            echo "\$DOCKER_PASS" | docker login -u "\$DOCKER_USER" --password-stdin
-                            echo "Docker Hub 登录成功！"
+                            echo "用户名: \$DOCKER_USER"
+                            echo "密码长度: \${#DOCKER_PASS}"
+                            
+                            # 尝试登录
+                            if echo "\$DOCKER_PASS" | docker login -u "\$DOCKER_USER" --password-stdin; then
+                                echo "✅ Docker Hub 登录成功！"
+                            else
+                                echo "❌ Docker Hub 登录失败！"
+                                echo "请检查："
+                                echo "1. Docker Hub 用户名是否正确"
+                                echo "2. 访问令牌是否有效"
+                                echo "3. 令牌权限是否包含 Read, Write"
+                                exit 1
+                            fi
                             
                             echo "推送后端镜像: ${DOCKER_USERNAME}/ecommerce-backend:${IMAGE_TAG}"
                             docker push ${DOCKER_USERNAME}/ecommerce-backend:${IMAGE_TAG}
