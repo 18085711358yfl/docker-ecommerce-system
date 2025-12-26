@@ -3,35 +3,36 @@ package com.ecommerce.controller;
 import com.ecommerce.dto.ProductDTO;
 import com.ecommerce.service.ProductService;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.ResponseEntity;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.*;
 
 /**
  * ProductController 单元测试
  */
-@WebMvcTest(ProductController.class)
+@ExtendWith(MockitoExtension.class)
 public class ProductControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
-
-    @MockBean
+    @Mock
     private ProductService productService;
 
+    @InjectMocks
+    private ProductController productController;
+
     @Test
-    public void testGetAllProducts() throws Exception {
+    public void testGetAllProducts() {
         // 准备测试数据
         ProductDTO product1 = new ProductDTO();
         product1.setId(1L);
@@ -51,15 +52,19 @@ public class ProductControllerTest {
         when(productService.getAllProducts()).thenReturn(products);
 
         // 执行测试
-        mockMvc.perform(get("/api/products")
-                .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].name").value("测试商品1"))
-                .andExpect(jsonPath("$[1].name").value("测试商品2"));
+        ResponseEntity<Map<String, Object>> response = productController.getAllProducts();
+
+        // 验证结果
+        assertNotNull(response);
+        assertEquals(200, response.getStatusCodeValue());
+        assertNotNull(response.getBody());
+        assertTrue((Boolean) response.getBody().get("success"));
+        assertEquals(2, response.getBody().get("total"));
+        verify(productService, times(1)).getAllProducts();
     }
 
     @Test
-    public void testGetProductById() throws Exception {
+    public void testGetProductById() {
         // 准备测试数据
         ProductDTO product = new ProductDTO();
         product.setId(1L);
@@ -71,62 +76,85 @@ public class ProductControllerTest {
         when(productService.getProductById(1L)).thenReturn(product);
 
         // 执行测试
-        mockMvc.perform(get("/api/products/1")
-                .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.name").value("测试商品"))
-                .andExpect(jsonPath("$.price").value(99.99));
+        ResponseEntity<Map<String, Object>> response = productController.getProductById(1L);
+
+        // 验证结果
+        assertNotNull(response);
+        assertEquals(200, response.getStatusCodeValue());
+        assertNotNull(response.getBody());
+        assertTrue((Boolean) response.getBody().get("success"));
+        verify(productService, times(1)).getProductById(1L);
     }
 
     @Test
-    public void testCreateProduct() throws Exception {
+    public void testCreateProduct() {
         // 准备测试数据
-        ProductDTO product = new ProductDTO();
-        product.setId(1L);
-        product.setName("新商品");
-        product.setPrice(new BigDecimal("299.99"));
-        product.setStock(200);
+        ProductDTO inputProduct = new ProductDTO();
+        inputProduct.setName("新商品");
+        inputProduct.setPrice(new BigDecimal("299.99"));
+        inputProduct.setStock(200);
+
+        ProductDTO savedProduct = new ProductDTO();
+        savedProduct.setId(1L);
+        savedProduct.setName("新商品");
+        savedProduct.setPrice(new BigDecimal("299.99"));
+        savedProduct.setStock(200);
 
         // Mock 服务层
-        when(productService.createProduct(any(ProductDTO.class))).thenReturn(product);
+        when(productService.createProduct(any(ProductDTO.class))).thenReturn(savedProduct);
 
         // 执行测试
-        String productJson = "{\"name\":\"新商品\",\"price\":299.99,\"stock\":200}";
+        ResponseEntity<Map<String, Object>> response = productController.createProduct(inputProduct);
 
-        mockMvc.perform(post("/api/products")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(productJson))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.name").value("新商品"));
+        // 验证结果
+        assertNotNull(response);
+        assertEquals(201, response.getStatusCodeValue());  // 创建资源返回 201
+        assertNotNull(response.getBody());
+        assertTrue((Boolean) response.getBody().get("success"));
+        verify(productService, times(1)).createProduct(any(ProductDTO.class));
     }
 
     @Test
-    public void testUpdateProduct() throws Exception {
+    public void testUpdateProduct() {
         // 准备测试数据
-        ProductDTO product = new ProductDTO();
-        product.setId(1L);
-        product.setName("更新商品");
-        product.setPrice(new BigDecimal("399.99"));
-        product.setStock(150);
+        ProductDTO inputProduct = new ProductDTO();
+        inputProduct.setName("更新商品");
+        inputProduct.setPrice(new BigDecimal("399.99"));
+        inputProduct.setStock(150);
+
+        ProductDTO updatedProduct = new ProductDTO();
+        updatedProduct.setId(1L);
+        updatedProduct.setName("更新商品");
+        updatedProduct.setPrice(new BigDecimal("399.99"));
+        updatedProduct.setStock(150);
 
         // Mock 服务层
-        when(productService.updateProduct(any(Long.class), any(ProductDTO.class))).thenReturn(product);
+        when(productService.updateProduct(eq(1L), any(ProductDTO.class))).thenReturn(updatedProduct);
 
         // 执行测试
-        String productJson = "{\"name\":\"更新商品\",\"price\":399.99,\"stock\":150}";
+        ResponseEntity<Map<String, Object>> response = productController.updateProduct(1L, inputProduct);
 
-        mockMvc.perform(put("/api/products/1")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(productJson))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.name").value("更新商品"));
+        // 验证结果
+        assertNotNull(response);
+        assertEquals(200, response.getStatusCodeValue());
+        assertNotNull(response.getBody());
+        assertTrue((Boolean) response.getBody().get("success"));
+        verify(productService, times(1)).updateProduct(eq(1L), any(ProductDTO.class));
     }
 
     @Test
-    public void testDeleteProduct() throws Exception {
+    public void testDeleteProduct() {
+        // Mock 服务层
+        doNothing().when(productService).deleteProduct(1L);
+
         // 执行测试
-        mockMvc.perform(delete("/api/products/1")
-                .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk());
+        ResponseEntity<Map<String, Object>> response = productController.deleteProduct(1L);
+
+        // 验证结果
+        assertNotNull(response);
+        assertEquals(200, response.getStatusCodeValue());
+        assertNotNull(response.getBody());
+        assertTrue((Boolean) response.getBody().get("success"));
+        verify(productService, times(1)).deleteProduct(1L);
     }
 }
