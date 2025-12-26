@@ -10,6 +10,7 @@ permissions:
   contents: read
   security-events: write
   actions: read
+  checks: write  # 允许 test-reporter 写入检查结果
 
 jobs:
   test:
