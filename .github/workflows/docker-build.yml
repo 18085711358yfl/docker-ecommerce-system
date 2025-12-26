@@ -129,6 +129,8 @@ jobs:
       
       - name: Upload Trivy results to GitHub Security
         uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        continue-on-error: true
         with:
           sarif_file: 'trivy-results.sarif'
 
@@ -141,9 +143,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       
+      - name: Set up Docker Compose
+        run: |
+          # Docker Compose v2 已经内置在 Docker 中
+          docker compose version
+      
       - name: Start services
         run: |
-          docker-compose up -d
+          docker compose up -d
           sleep 30
       
       - name: Wait for backend
@@ -157,11 +164,11 @@ jobs:
       
       - name: Stop services
         if: always()
-        run: docker-compose down
+        run: docker compose down
       
       - name: Show logs
         if: failure()
-        run: docker-compose logs
+        run: docker compose logs
 
   deploy:
     name: Deploy
