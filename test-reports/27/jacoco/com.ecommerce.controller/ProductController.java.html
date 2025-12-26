@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ProductController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ecommerce-backend</a> &gt; <a href="index.source.html" class="el_package">com.ecommerce.controller</a> &gt; <span class="el_source">ProductController.java</span></div><h1>ProductController.java</h1><pre class="source lang-java linenums">package com.ecommerce.controller;
+
+import com.ecommerce.dto.ProductDTO;
+import com.ecommerce.service.ProductService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 商品控制器 - RESTful API
+ */
+@RestController
+@RequestMapping(value = &quot;/api/products&quot;, produces = &quot;application/json;charset=UTF-8&quot;)
+<span class="fc" id="L19">@RequiredArgsConstructor</span>
+@CrossOrigin(origins = &quot;*&quot;)
+public class ProductController {
+    
+    static {
+<span class="fc" id="L24">        System.setProperty(&quot;file.encoding&quot;, &quot;UTF-8&quot;);</span>
+<span class="fc" id="L25">    }</span>
+    
+    private final ProductService productService;
+    
+    /**
+     * 获取所有商品
+     * GET /api/products
+     */
+    @GetMapping
+    public ResponseEntity&lt;Map&lt;String, Object&gt;&gt; getAllProducts() {
+<span class="fc" id="L35">        List&lt;ProductDTO&gt; products = productService.getAllProducts();</span>
+<span class="fc" id="L36">        Map&lt;String, Object&gt; response = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L37">        response.put(&quot;success&quot;, true);</span>
+<span class="fc" id="L38">        response.put(&quot;data&quot;, products);</span>
+<span class="fc" id="L39">        response.put(&quot;total&quot;, products.size());</span>
+<span class="fc" id="L40">        response.put(&quot;version&quot;, &quot;v2&quot;);  // 版本标识</span>
+<span class="fc" id="L41">        response.put(&quot;message&quot;, &quot;Backend API v2 - Blue-Green Deployment&quot;);</span>
+<span class="fc" id="L42">        return ResponseEntity.ok(response);</span>
+    }
+    
+    /**
+     * 根据ID获取商品详情
+     * GET /api/products/{id}
+     */
+    @GetMapping(&quot;/{id}&quot;)
+    public ResponseEntity&lt;Map&lt;String, Object&gt;&gt; getProductById(@PathVariable Long id) {
+        try {
+<span class="fc" id="L52">            ProductDTO product = productService.getProductById(id);</span>
+<span class="fc" id="L53">            Map&lt;String, Object&gt; response = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L54">            response.put(&quot;success&quot;, true);</span>
+<span class="fc" id="L55">            response.put(&quot;data&quot;, product);</span>
+<span class="fc" id="L56">            return ResponseEntity.ok(response);</span>
+<span class="nc" id="L57">        } catch (RuntimeException e) {</span>
+<span class="nc" id="L58">            Map&lt;String, Object&gt; response = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L59">            response.put(&quot;success&quot;, false);</span>
+<span class="nc" id="L60">            response.put(&quot;message&quot;, e.getMessage());</span>
+<span class="nc" id="L61">            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);</span>
+        }
+    }
+    
+    /**
+     * 创建商品
+     * POST /api/products
+     */
+    @PostMapping
+    public ResponseEntity&lt;Map&lt;String, Object&gt;&gt; createProduct(@Valid @RequestBody ProductDTO productDTO) {
+<span class="fc" id="L71">        ProductDTO createdProduct = productService.createProduct(productDTO);</span>
+<span class="fc" id="L72">        Map&lt;String, Object&gt; response = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L73">        response.put(&quot;success&quot;, true);</span>
+<span class="fc" id="L74">        response.put(&quot;data&quot;, createdProduct);</span>
+<span class="fc" id="L75">        response.put(&quot;message&quot;, &quot;商品创建成功&quot;);</span>
+<span class="fc" id="L76">        return ResponseEntity.status(HttpStatus.CREATED).body(response);</span>
+    }
+    
+    /**
+     * 更新商品
+     * PUT /api/products/{id}
+     */
+    @PutMapping(&quot;/{id}&quot;)
+    public ResponseEntity&lt;Map&lt;String, Object&gt;&gt; updateProduct(
+            @PathVariable Long id,
+            @Valid @RequestBody ProductDTO productDTO) {
+        try {
+<span class="fc" id="L88">            ProductDTO updatedProduct = productService.updateProduct(id, productDTO);</span>
+<span class="fc" id="L89">            Map&lt;String, Object&gt; response = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L90">            response.put(&quot;success&quot;, true);</span>
+<span class="fc" id="L91">            response.put(&quot;data&quot;, updatedProduct);</span>
+<span class="fc" id="L92">            response.put(&quot;message&quot;, &quot;商品更新成功&quot;);</span>
+<span class="fc" id="L93">            return ResponseEntity.ok(response);</span>
+<span class="nc" id="L94">        } catch (RuntimeException e) {</span>
+<span class="nc" id="L95">            Map&lt;String, Object&gt; response = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L96">            response.put(&quot;success&quot;, false);</span>
+<span class="nc" id="L97">            response.put(&quot;message&quot;, e.getMessage());</span>
+<span class="nc" id="L98">            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);</span>
+        }
+    }
+    
+    /**
+     * 删除商品
+     * DELETE /api/products/{id}
+     */
+    @DeleteMapping(&quot;/{id}&quot;)
+    public ResponseEntity&lt;Map&lt;String, Object&gt;&gt; deleteProduct(@PathVariable Long id) {
+        try {
+<span class="fc" id="L109">            productService.deleteProduct(id);</span>
+<span class="fc" id="L110">            Map&lt;String, Object&gt; response = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L111">            response.put(&quot;success&quot;, true);</span>
+<span class="fc" id="L112">            response.put(&quot;message&quot;, &quot;商品删除成功&quot;);</span>
+<span class="fc" id="L113">            return ResponseEntity.ok(response);</span>
+<span class="nc" id="L114">        } catch (RuntimeException e) {</span>
+<span class="nc" id="L115">            Map&lt;String, Object&gt; response = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L116">            response.put(&quot;success&quot;, false);</span>
+<span class="nc" id="L117">            response.put(&quot;message&quot;, e.getMessage());</span>
+<span class="nc" id="L118">            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);</span>
+        }
+    }
+    
+    /**
+     * 根据分类查询商品
+     * GET /api/products/category/{category}
+     */
+    @GetMapping(&quot;/category/{category}&quot;)
+    public ResponseEntity&lt;Map&lt;String, Object&gt;&gt; getProductsByCategory(@PathVariable String category) {
+<span class="nc" id="L128">        List&lt;ProductDTO&gt; products = productService.getProductsByCategory(category);</span>
+<span class="nc" id="L129">        Map&lt;String, Object&gt; response = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L130">        response.put(&quot;success&quot;, true);</span>
+<span class="nc" id="L131">        response.put(&quot;data&quot;, products);</span>
+<span class="nc" id="L132">        response.put(&quot;total&quot;, products.size());</span>
+<span class="nc" id="L133">        return ResponseEntity.ok(response);</span>
+    }
+    
+    /**
+     * 搜索商品
+     * GET /api/products/search?keyword=xxx
+     */
+    @GetMapping(&quot;/search&quot;)
+    public ResponseEntity&lt;Map&lt;String, Object&gt;&gt; searchProducts(@RequestParam String keyword) {
+<span class="nc" id="L142">        List&lt;ProductDTO&gt; products = productService.searchProducts(keyword);</span>
+<span class="nc" id="L143">        Map&lt;String, Object&gt; response = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L144">        response.put(&quot;success&quot;, true);</span>
+<span class="nc" id="L145">        response.put(&quot;data&quot;, products);</span>
+<span class="nc" id="L146">        response.put(&quot;total&quot;, products.size());</span>
+<span class="nc" id="L147">        return ResponseEntity.ok(response);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.10.202304240956</span></div></body></html>

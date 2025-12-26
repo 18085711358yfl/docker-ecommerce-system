@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ProductService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ecommerce-backend</a> &gt; <a href="index.source.html" class="el_package">com.ecommerce.service</a> &gt; <span class="el_source">ProductService.java</span></div><h1>ProductService.java</h1><pre class="source lang-java linenums">package com.ecommerce.service;
+
+import com.ecommerce.dto.ProductDTO;
+import com.ecommerce.entity.Product;
+import com.ecommerce.repository.ProductRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.BeanUtils;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import java.util.List;
+import java.util.stream.Collectors;
+
+/**
+ * 商品服务层
+ */
+@Service
+<span class="fc" id="L17">@RequiredArgsConstructor</span>
+public class ProductService {
+    
+    private final ProductRepository productRepository;
+    
+    /**
+     * 获取所有商品
+     */
+    public List&lt;ProductDTO&gt; getAllProducts() {
+<span class="fc" id="L26">        return productRepository.findAll().stream()</span>
+<span class="fc" id="L27">                .map(this::convertToDTO)</span>
+<span class="fc" id="L28">                .collect(Collectors.toList());</span>
+    }
+    
+    /**
+     * 根据ID获取商品
+     */
+    public ProductDTO getProductById(Long id) {
+<span class="fc" id="L35">        Product product = productRepository.findById(id)</span>
+<span class="fc" id="L36">                .orElseThrow(() -&gt; new RuntimeException(&quot;商品不存在: &quot; + id));</span>
+<span class="fc" id="L37">        return convertToDTO(product);</span>
+    }
+    
+    /**
+     * 创建商品
+     */
+    @Transactional
+    public ProductDTO createProduct(ProductDTO productDTO) {
+<span class="fc" id="L45">        Product product = convertToEntity(productDTO);</span>
+<span class="fc" id="L46">        Product savedProduct = productRepository.save(product);</span>
+<span class="fc" id="L47">        return convertToDTO(savedProduct);</span>
+    }
+    
+    /**
+     * 更新商品
+     */
+    @Transactional
+    public ProductDTO updateProduct(Long id, ProductDTO productDTO) {
+<span class="fc" id="L55">        Product existingProduct = productRepository.findById(id)</span>
+<span class="pc" id="L56">                .orElseThrow(() -&gt; new RuntimeException(&quot;商品不存在: &quot; + id));</span>
+        
+        // 手动更新字段以确保所有字段都被正确更新
+<span class="fc" id="L59">        existingProduct.setName(productDTO.getName());</span>
+<span class="fc" id="L60">        existingProduct.setDescription(productDTO.getDescription());</span>
+<span class="fc" id="L61">        existingProduct.setPrice(productDTO.getPrice());</span>
+<span class="fc" id="L62">        existingProduct.setStock(productDTO.getStock());</span>
+<span class="fc" id="L63">        existingProduct.setCategory(productDTO.getCategory());</span>
+<span class="fc" id="L64">        existingProduct.setImageUrl(productDTO.getImageUrl());</span>
+        
+<span class="fc" id="L66">        Product updatedProduct = productRepository.save(existingProduct);</span>
+<span class="fc" id="L67">        return convertToDTO(updatedProduct);</span>
+    }
+    
+    /**
+     * 删除商品
+     */
+    @Transactional
+    public void deleteProduct(Long id) {
+<span class="fc bfc" id="L75" title="All 2 branches covered.">        if (!productRepository.existsById(id)) {</span>
+<span class="fc" id="L76">            throw new RuntimeException(&quot;商品不存在: &quot; + id);</span>
+        }
+<span class="fc" id="L78">        productRepository.deleteById(id);</span>
+<span class="fc" id="L79">    }</span>
+    
+    /**
+     * 根据分类查询商品
+     */
+    public List&lt;ProductDTO&gt; getProductsByCategory(String category) {
+<span class="nc" id="L85">        return productRepository.findByCategory(category).stream()</span>
+<span class="nc" id="L86">                .map(this::convertToDTO)</span>
+<span class="nc" id="L87">                .collect(Collectors.toList());</span>
+    }
+    
+    /**
+     * 搜索商品
+     */
+    public List&lt;ProductDTO&gt; searchProducts(String keyword) {
+<span class="nc" id="L94">        return productRepository.findByNameContaining(keyword).stream()</span>
+<span class="nc" id="L95">                .map(this::convertToDTO)</span>
+<span class="nc" id="L96">                .collect(Collectors.toList());</span>
+    }
+    
+    /**
+     * 实体转DTO
+     */
+    private ProductDTO convertToDTO(Product product) {
+<span class="fc" id="L103">        ProductDTO dto = new ProductDTO();</span>
+<span class="fc" id="L104">        BeanUtils.copyProperties(product, dto);</span>
+<span class="fc" id="L105">        return dto;</span>
+    }
+    
+    /**
+     * DTO转实体
+     */
+    private Product convertToEntity(ProductDTO dto) {
+<span class="fc" id="L112">        Product product = new Product();</span>
+<span class="fc" id="L113">        BeanUtils.copyProperties(dto, product);</span>
+<span class="fc" id="L114">        return product;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.10.202304240956</span></div></body></html>
